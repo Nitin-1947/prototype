@@ -1,6 +1,8 @@
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
 from enum import Enum
+import json
+from pathlib import Path
 
 
 class VendorType(str, Enum):
@@ -15,6 +17,20 @@ class UploadRequest(BaseModel):
     device_name: Optional[str] = "Unnamed Device"
 
 
+class FrameworkReference(BaseModel):
+    name: str
+    control_id: str
+
+
+def _rule_metadata(rule_id: str) -> dict:
+    rules_path = Path(__file__).parent.parent / "rules" / "cis_benchmarks.json"
+    try:
+        rules = json.loads(rules_path.read_text())
+    except (OSError, json.JSONDecodeError):
+        return {}
+    return next((rule for rule in rules if rule.get("id") == rule_id), {})
+
+
 class RuleResult(BaseModel):
     rule_id: str
     rule_name: str
@@ -23,7 +39,19 @@ class RuleResult(BaseModel):
     explanation: str
     config_snippet: Optional[str] = None
     fix_command: Optional[str] = None
-    frameworks: List[str] = []
+    severity: str = "medium"
+    exposure_weight: int = Field(default=1, ge=1, le=3)
+    frameworks: List[FrameworkReference] = []
+    risk_score: int = Field(default=1, ge=1, le=12)
+
+    def model_post_init(self, __context: Any) -> None:
+        metadata = _rule_metadata(self.rule_id)
+        if metadata:
+            self.severity = metadata.get("severity", self.severity)
+            self.exposure_weight = metadata.get("exposure_weight", self.exposure_weight)
+            self.frameworks = [FrameworkReference(**item) for item in metadata.get("frameworks", [])]
+            severity_weight = {"critical": 4, "high": 3, "medium": 2, "low": 1}
+            self.risk_score = severity_weight.get(self.severity, 1) * self.exposure_weight
 
 
 class DeviceResult(BaseModel):
