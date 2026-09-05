@@ -94,16 +94,13 @@ body {
 .engine-status i { display: block; width: 7px; height: 7px; border-radius: 50%; background: var(--accent-green); box-shadow: 0 0 8px var(--accent-green); }
 .icon-button { color: var(--text-muted); background: transparent; border: 0; cursor: pointer; padding: 0.4rem; }
 .icon-button:hover { color: var(--accent-primary); }
-.tactical-rail { position: fixed; z-index: 90; top: 56px; bottom: 0; left: 0; width: 56px; padding: 0.75rem 0.4rem; display: flex; flex-direction: column; align-items: stretch; background: rgba(24, 28, 36, 0.96); border-right: 1px solid var(--border); transition: width 180ms ease; overflow: hidden; }
-.tactical-rail:hover { width: 220px; }
+.tactical-rail { position: fixed; z-index: 90; top: 56px; bottom: 0; left: 0; width: 220px; padding: 0.75rem 0.4rem; display: flex; flex-direction: column; align-items: stretch; background: rgba(24, 28, 36, 0.96); border-right: 1px solid var(--border); transition: width 180ms ease; overflow: hidden; }
 .rail-emblem { text-align: center; color: var(--accent-primary); padding: 0.35rem; }
-.rail-label { opacity: 0; white-space: nowrap; color: var(--accent-primary); font: 700 0.7rem 'Space Grotesk', sans-serif; text-transform: uppercase; padding: 0 0.5rem 0.8rem; border-bottom: 1px solid var(--border); transition: opacity 150ms ease; }
+.rail-label { opacity: 1; white-space: nowrap; color: var(--accent-primary); font: 700 0.7rem 'Space Grotesk', sans-serif; text-transform: uppercase; padding: 0 0.5rem 0.8rem; border-bottom: 1px solid var(--border); transition: opacity 150ms ease; }
 .rail-label span { display: block; color: var(--text-muted); font: 0.58rem 'JetBrains Mono', monospace; margin-top: 0.2rem; text-transform: none; }
-.tactical-rail:hover .rail-label { opacity: 1; }
 .rail-link { display: flex; align-items: center; gap: 0.85rem; min-height: 42px; padding: 0 0.55rem; color: var(--text-muted); text-decoration: none; border-left: 2px solid transparent; white-space: nowrap; }
 .rail-link:hover, .rail-link.active { color: var(--text-primary); background: var(--bg-card-hover); border-left-color: var(--accent-primary); }
-.rail-link b { opacity: 0; font: 0.7rem 'JetBrains Mono', monospace; font-weight: 500; transition: opacity 150ms ease; }
-.tactical-rail:hover .rail-link b { opacity: 1; }
+.rail-link b { opacity: 1; font: 0.7rem 'JetBrains Mono', monospace; font-weight: 500; transition: opacity 150ms ease; }
 .rail-spacer { flex: 1; }
 
 .page-wrapper {
@@ -111,9 +108,26 @@ body {
   padding: 1.5rem;
   padding-top: 5rem;
   max-width: 1920px;
-  margin: 0 0 0 56px;
+  margin: 0 0 0 220px;
   width: 100%;
 }
+
+.operations-page { min-height: calc(100vh - 56px); }
+.operations-heading { display: flex; align-items: flex-start; gap: 1rem; padding: 1rem 0 1.5rem; border-bottom: 1px solid var(--border); }
+.operations-icon { font-family: 'Material Symbols Outlined'; color: var(--accent-primary); font-size: 2rem; }
+.eyebrow, .mono-label { color: var(--text-muted); font: 600 0.66rem 'JetBrains Mono', monospace; letter-spacing: 0.1em; text-transform: uppercase; }
+.operations-heading h1 { margin: 0.25rem 0; color: var(--text-primary); font: 700 2rem 'Space Grotesk', sans-serif; }
+.operations-heading p { color: var(--text-secondary); max-width: 650px; }
+.operations-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 0.75rem; padding-top: 1.25rem; }
+.operations-card { padding: 1rem; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); }
+.operations-card:hover { border-color: var(--accent-primary); }
+.operations-card-top { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
+.operations-card h2 { margin: 1rem 0 0.4rem; color: var(--text-primary); font: 600 1rem 'Space Grotesk', sans-serif; }
+.operations-card p { color: var(--text-secondary); font-size: 0.82rem; }
+.ops-status { padding: 0.2rem 0.45rem; border: 1px solid currentColor; border-radius: 2px; font: 600 0.62rem 'JetBrains Mono', monospace; }
+.ops-high { color: var(--accent-red); }
+.ops-medium { color: var(--accent-amber); }
+.ops-online, .ops-ready, .ops-active, .ops-local, .ops-http, .ops-memory, .ops-demo { color: var(--accent-green); }
 
 .page-wrapper > * { position: relative; }
 
@@ -467,7 +481,13 @@ body {
 
 @media (max-width: 640px) {
   .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
-  .page-wrapper { padding: 1rem; }
+  .topbar { padding: 0 0.65rem; }
+  .brand-lockup { min-width: 0; }
+  .brand-lockup small, .topbar-links, .engine-status { display: none; }
+  .tactical-rail { width: 52px; }
+  .tactical-rail:hover { width: 52px; }
+  .rail-label, .rail-link b { opacity: 0; }
+  .page-wrapper { padding: 1rem; margin-left: 52px; }
 }
 
 /* ─── Vendor Chips ───────────────────────────────────────────────────────── */

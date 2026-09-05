@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, NavLink, useNavigate } from "react-router
 import Upload from "./pages/Upload";
 import Dashboard from "./pages/Dashboard";
 import DeviceDetail from "./pages/DeviceDetail";
+import Operations from "./pages/Operations";
 import { resetAll } from "./api/client";
 import "./index.css";
 
@@ -43,10 +44,16 @@ function Navbar() {
         <NavLink to="/upload" className={({ isActive }) => `rail-link${isActive ? " active" : ""}`}>
           <span>router</span><b>Audited Nodes</b>
         </NavLink>
-        <a className="rail-link" href="#rules"><span>verified</span><b>CIS Benchmarks</b></a>
-        <a className="rail-link" href="#telemetry"><span>terminal</span><b>Telemetry Logs</b></a>
+        <NavLink to="/benchmarks" className={({ isActive }) => `rail-link${isActive ? " active" : ""}`}>
+          <span>verified</span><b>CIS Benchmarks</b>
+        </NavLink>
+        <NavLink to="/telemetry" className={({ isActive }) => `rail-link${isActive ? " active" : ""}`}>
+          <span>terminal</span><b>Telemetry Logs</b>
+        </NavLink>
         <div className="rail-spacer" />
-        <a className="rail-link" href="#settings"><span>settings</span><b>Settings</b></a>
+        <NavLink to="/settings" className={({ isActive }) => `rail-link${isActive ? " active" : ""}`}>
+          <span>settings</span><b>Settings</b>
+        </NavLink>
       </aside>
     </>
   );
@@ -61,6 +68,9 @@ export default function App() {
         <Route path="/upload" element={<Upload />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/device/:deviceId" element={<DeviceDetail />} />
+        <Route path="/benchmarks" element={<Operations view="benchmarks" />} />
+        <Route path="/telemetry" element={<Operations view="telemetry" />} />
+        <Route path="/settings" element={<Operations view="settings" />} />
       </Routes>
     </BrowserRouter>
   );
