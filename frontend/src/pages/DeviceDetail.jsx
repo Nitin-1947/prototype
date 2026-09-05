@@ -154,6 +154,7 @@ export default function DeviceDetail() {
               <th>Rule</th>
               <th>Status</th>
               <th>Confidence</th>
+              <th>Risk</th>
               <th>Frameworks</th>
               <th></th>
             </tr>
@@ -183,10 +184,20 @@ export default function DeviceDetail() {
                     </div>
                   </td>
                   <td>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "0.2rem" }}>
+                      <span className={`badge ${rule.risk_score >= 9 ? "badge-fail" : rule.risk_score >= 5 ? "badge-medium" : "badge-low"}`}>
+                        {rule.risk_score ?? "-"}/12
+                      </span>
+                      <span style={{ color: "var(--text-muted)", fontSize: "0.68rem", textTransform: "capitalize" }}>
+                        {rule.severity || "unknown"} · exposure {rule.exposure_weight ?? "-"}
+                      </span>
+                    </div>
+                  </td>
+                  <td>
                     <div style={{ display: "flex", gap: "0.3rem", flexWrap: "wrap" }}>
                       {rule.frameworks?.map((fw) => (
-                        <span key={fw} className="badge" style={{ background: "var(--bg-glass)", color: "var(--text-secondary)", border: "1px solid var(--border)", fontSize: "0.68rem" }}>
-                          {fw}
+                        <span key={`${fw.name}-${fw.control_id}`} className="badge" style={{ background: "var(--bg-glass)", color: "var(--text-secondary)", border: "1px solid var(--border)", fontSize: "0.68rem" }}>
+                          {fw.name}: {fw.control_id}
                         </span>
                       ))}
                     </div>
@@ -198,8 +209,13 @@ export default function DeviceDetail() {
 
                 {expandedRule === rule.rule_id && (
                   <tr key={`${rule.rule_id}-expanded`}>
-                    <td colSpan={5} style={{ padding: "1rem 1.5rem", background: "var(--bg-surface)" }}>
+                    <td colSpan={6} style={{ padding: "1rem 1.5rem", background: "var(--bg-surface)" }}>
                       <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                          <span className="badge badge-unknown">Risk score: {rule.risk_score ?? "-"}/12</span>
+                          <span className="badge badge-unknown">Severity: {rule.severity || "unknown"}</span>
+                          <span className="badge badge-unknown">Exposure: {rule.exposure_weight ?? "-"}/3</span>
+                        </div>
                         {/* Explanation */}
                         <div>
                           <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "0.4rem" }}>
