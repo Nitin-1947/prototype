@@ -1,0 +1,84 @@
+config system global
+    set hostname fortinet-fw-01
+    set admintimeout 5
+    set admin-telnet disable
+    set admin-ssh-v1 disable
+    set admin-https-redirect enable
+    set pre-login-banner enable
+end
+
+config system admin
+    edit "admin"
+        set password ENC AK1Jd8/SOMEENCRYPTEDPASSWORD==
+        set accprofile "super_admin"
+        set vdom "root"
+        set two-factor disable
+    next
+end
+
+config system interface
+    edit "mgmt"
+        set vdom "root"
+        set mode static
+        set ip 10.1.0.1 255.255.255.0
+        set allowaccess https ssh ping
+        set type physical
+        set trust-ip-1 10.1.0.0 255.255.255.0
+        set trust-ip-2 0.0.0.0 0.0.0.0
+    next
+    edit "wan1"
+        set vdom "root"
+        set mode dhcp
+        set allowaccess ping
+        set type physical
+    next
+end
+
+config system ntp
+    set ntpsync enable
+    set type fortiguard
+    set syncinterval 60
+end
+
+config log syslogd setting
+    set status enable
+    set server "10.1.0.200"
+    set port 514
+    set facility local7
+    set level information
+end
+
+config log memory setting
+    set status enable
+    set diskfull overwrite
+end
+
+config system snmp sysinfo
+    set status enable
+    set description "FortiGate Firewall"
+    set contact-info "netops@example.com"
+    set location "Data Center"
+end
+
+config system snmp community
+    edit 1
+        set name "corpSNMP2024!"
+        set status enable
+        config hosts
+            edit 1
+                set ip 10.1.0.50
+            next
+        end
+        set events cpu-high mem-low log-full intf-ip vpn-tun-up vpn-tun-down
+    next
+end
+
+config system password-policy
+    set status enable
+    set minimum-length 12
+    set min-lower-case-letter 1
+    set min-upper-case-letter 1
+    set min-non-alphanumeric 1
+    set expire-status enable
+    set expire-day 90
+end

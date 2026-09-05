@@ -1,0 +1,212 @@
+[
+  {
+    "id": "CIS-1.1",
+    "name": "Disable Telnet Access",
+    "description": "Telnet transmits data in plaintext, including credentials, making it vulnerable to interception. Management access must use encrypted protocols only.",
+    "check_logic": "telnet_enabled must be false",
+    "expected": false,
+    "severity": "HIGH",
+    "frameworks": ["CIS-Benchmark-L1", "PCI-DSS-2.2.7", "NIST-800-53-SC-8"],
+    "fix_commands": {
+      "cisco": "line vty 0 15\n no transport input telnet\n transport input ssh",
+      "fortinet": "config system global\n set admin-telnet disable\nend",
+      "juniper": "delete system services telnet\nset system services ssh"
+    }
+  },
+  {
+    "id": "CIS-1.2",
+    "name": "Enforce SSH Version 2",
+    "description": "SSH version 1 has known vulnerabilities. Only SSHv2 should be permitted for encrypted management access.",
+    "check_logic": "ssh_version must be '2'",
+    "expected": "2",
+    "severity": "HIGH",
+    "frameworks": ["CIS-Benchmark-L1", "PCI-DSS-2.2.7", "NIST-800-53-SC-8"],
+    "fix_commands": {
+      "cisco": "ip ssh version 2",
+      "fortinet": "config system global\n set admin-ssh-v1 disable\nend",
+      "juniper": "set system services ssh protocol-version v2"
+    }
+  },
+  {
+    "id": "CIS-1.3",
+    "name": "Disable HTTP Management Server",
+    "description": "HTTP transmits management traffic unencrypted. The HTTP server must be disabled in favor of HTTPS.",
+    "check_logic": "http_server_enabled must be false",
+    "expected": false,
+    "severity": "HIGH",
+    "frameworks": ["CIS-Benchmark-L1", "PCI-DSS-2.2.3"],
+    "fix_commands": {
+      "cisco": "no ip http server",
+      "fortinet": "config system global\n set admin-http enable-redirect\nend",
+      "juniper": "delete system services http"
+    }
+  },
+  {
+    "id": "CIS-1.4",
+    "name": "Configure Login Banner",
+    "description": "A warning banner must be displayed before login to inform unauthorized users and satisfy legal requirements.",
+    "check_logic": "login_banner_configured must be true",
+    "expected": true,
+    "severity": "MEDIUM",
+    "frameworks": ["CIS-Benchmark-L1", "NIST-800-53-AC-8"],
+    "fix_commands": {
+      "cisco": "banner login #\nAuthorized access only. Disconnect immediately if not authorized.\n#",
+      "fortinet": "config system replacemsg-group\n edit login\n  set comment \"Authorized access only.\"\n next\nend",
+      "juniper": "set system login announcement \"Authorized access only.\""
+    }
+  },
+  {
+    "id": "CIS-1.5",
+    "name": "Enable Logging",
+    "description": "System logging must be enabled to support audit trails and incident response.",
+    "check_logic": "logging_enabled must be true",
+    "expected": true,
+    "severity": "HIGH",
+    "frameworks": ["CIS-Benchmark-L1", "PCI-DSS-10.1", "NIST-800-53-AU-2"],
+    "fix_commands": {
+      "cisco": "logging on\nlogging buffered 64000",
+      "fortinet": "config log memory setting\n set status enable\nend",
+      "juniper": "set system syslog file messages any any"
+    }
+  },
+  {
+    "id": "CIS-1.6",
+    "name": "Configure Remote Syslog",
+    "description": "Logs must be sent to a remote syslog server to prevent local tampering and support centralized monitoring.",
+    "check_logic": "remote_syslog_configured must be true",
+    "expected": true,
+    "severity": "MEDIUM",
+    "frameworks": ["CIS-Benchmark-L1", "PCI-DSS-10.5.3", "NIST-800-53-AU-9"],
+    "fix_commands": {
+      "cisco": "logging host <syslog-server-ip>\nlogging trap informational",
+      "fortinet": "config log syslogd setting\n set status enable\n set server <syslog-server-ip>\nend",
+      "juniper": "set system syslog host <syslog-server-ip> any any"
+    }
+  },
+  {
+    "id": "CIS-1.7",
+    "name": "Configure NTP",
+    "description": "Network Time Protocol must be configured to ensure accurate timestamps for security logs and certificates.",
+    "check_logic": "ntp_configured must be true",
+    "expected": true,
+    "severity": "MEDIUM",
+    "frameworks": ["CIS-Benchmark-L1", "PCI-DSS-10.4", "NIST-800-53-AU-8"],
+    "fix_commands": {
+      "cisco": "ntp server <ntp-server-ip>\nclock timezone UTC 0",
+      "fortinet": "config system ntp\n set ntpsyn enable\n set server <ntp-server-ip>\nend",
+      "juniper": "set system ntp server <ntp-server-ip>"
+    }
+  },
+  {
+    "id": "CIS-1.8",
+    "name": "Use SNMPv3 Only",
+    "description": "SNMPv1 and SNMPv2c transmit community strings in cleartext. Only SNMPv3 with authentication and encryption should be used.",
+    "check_logic": "snmp_version must be 'v3' or 'disabled'",
+    "expected": "v3",
+    "severity": "HIGH",
+    "frameworks": ["CIS-Benchmark-L1", "PCI-DSS-2.2.7", "NIST-800-53-SC-8"],
+    "fix_commands": {
+      "cisco": "no snmp-server community public\nsnmp-server group SECURE v3 priv\nsnmp-server user ADMIN SECURE v3 auth sha <password> priv aes 256 <priv-password>",
+      "fortinet": "config system snmp community\n delete 1\nend\nconfig system snmp sysinfo\n set status enable\nend",
+      "juniper": "delete snmp community public\nset snmp v3 usm local-engine user admin authentication-md5 authentication-password <password>"
+    }
+  },
+  {
+    "id": "CIS-1.9",
+    "name": "Enable AAA Authentication",
+    "description": "Authentication, Authorization, and Accounting (AAA) must be configured to centrally manage access control.",
+    "check_logic": "aaa_authentication_enabled must be true",
+    "expected": true,
+    "severity": "HIGH",
+    "frameworks": ["CIS-Benchmark-L1", "PCI-DSS-8.3", "NIST-800-53-IA-2"],
+    "fix_commands": {
+      "cisco": "aaa new-model\naaa authentication login default local\naaa authorization exec default local",
+      "fortinet": "config system admin\n edit admin\n  set accprofile super_admin\n next\nend",
+      "juniper": "set system authentication-order radius password\nset access profile default authentication-order radius"
+    }
+  },
+  {
+    "id": "CIS-1.10",
+    "name": "Enable Password Encryption",
+    "description": "All passwords stored in device configuration must be encrypted to prevent credential exposure.",
+    "check_logic": "password_encryption_enabled must be true",
+    "expected": true,
+    "severity": "HIGH",
+    "frameworks": ["CIS-Benchmark-L1", "PCI-DSS-8.3.2", "NIST-800-53-IA-5"],
+    "fix_commands": {
+      "cisco": "service password-encryption",
+      "fortinet": "Fortinet encrypts passwords by default in FortiOS 6.0+. Verify admin password strength.",
+      "juniper": "set system root-authentication encrypted-password \"<hash>\""
+    }
+  },
+  {
+    "id": "CIS-1.11",
+    "name": "Disable IP Source Routing",
+    "description": "IP source routing allows attackers to specify the route packets take, potentially bypassing security controls.",
+    "check_logic": "source_routing_disabled must be true",
+    "expected": true,
+    "severity": "MEDIUM",
+    "frameworks": ["CIS-Benchmark-L1", "NIST-800-53-SC-5"],
+    "fix_commands": {
+      "cisco": "no ip source-route",
+      "fortinet": "Fortinet blocks source routing by default. No action required.",
+      "juniper": "set forwarding-options source-routing discard"
+    }
+  },
+  {
+    "id": "CIS-1.12",
+    "name": "Disable Directed Broadcasts",
+    "description": "IP directed broadcasts can be used to amplify DoS attacks (e.g., Smurf attacks). They must be disabled on all interfaces.",
+    "check_logic": "directed_broadcast_disabled must be true",
+    "expected": true,
+    "severity": "MEDIUM",
+    "frameworks": ["CIS-Benchmark-L1", "NIST-800-53-SC-5"],
+    "fix_commands": {
+      "cisco": "interface <interface>\n no ip directed-broadcast",
+      "fortinet": "Directed broadcasts are disabled by default in FortiOS.",
+      "juniper": "set interfaces <interface> unit 0 family inet no-redirects"
+    }
+  },
+  {
+    "id": "CIS-1.13",
+    "name": "Configure Management ACL",
+    "description": "Access to the device management plane (SSH, HTTPS) must be restricted by an Access Control List to trusted IP ranges only.",
+    "check_logic": "management_acl_configured must be true",
+    "expected": true,
+    "severity": "HIGH",
+    "frameworks": ["CIS-Benchmark-L1", "PCI-DSS-1.2.1", "NIST-800-53-AC-17"],
+    "fix_commands": {
+      "cisco": "ip access-list standard MGMT-ACCESS\n permit <trusted-ip-range>\nline vty 0 15\n access-class MGMT-ACCESS in",
+      "fortinet": "config system interface\n edit mgmt\n  set allowaccess ssh https\n  set trust-ip-1 <trusted-ip/mask>\n next\nend",
+      "juniper": "set firewall filter PROTECT-RE term MANAGEMENT from source-address <trusted-ip/prefix>\nset firewall filter PROTECT-RE term MANAGEMENT then accept"
+    }
+  },
+  {
+    "id": "CIS-1.14",
+    "name": "Set Idle Session Timeout",
+    "description": "Management sessions must automatically disconnect after a period of inactivity to prevent unauthorized access from unattended terminals.",
+    "check_logic": "idle_timeout_configured must be true",
+    "expected": true,
+    "severity": "MEDIUM",
+    "frameworks": ["CIS-Benchmark-L1", "PCI-DSS-8.2.8", "NIST-800-53-AC-11"],
+    "fix_commands": {
+      "cisco": "line vty 0 15\n exec-timeout 10 0\nline console 0\n exec-timeout 10 0",
+      "fortinet": "config system global\n set admintimeout 10\nend",
+      "juniper": "set system login idle-timeout 10"
+    }
+  },
+  {
+    "id": "CIS-1.15",
+    "name": "Avoid Default SNMP Community Strings",
+    "description": "Default SNMP community strings ('public' and 'private') are widely known and must not be used.",
+    "check_logic": "snmp_community_default must be false",
+    "expected": false,
+    "severity": "HIGH",
+    "frameworks": ["CIS-Benchmark-L1", "PCI-DSS-2.1", "NIST-800-53-IA-5"],
+    "fix_commands": {
+      "cisco": "no snmp-server community public\nno snmp-server community private",
+      "fortinet": "config system snmp community\n delete 1\nend",
+      "juniper": "delete snmp community public\ndelete snmp community private"
+    }
+  }
+]

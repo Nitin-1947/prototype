@@ -1,0 +1,164 @@
+## Juniper JunOS Sample Configuration - Edge Router
+## Device: juniper-edge-01
+
+system {
+    host-name juniper-edge-01;
+    domain-name corp.example.com;
+    time-zone UTC;
+
+    login {
+        announcement "UNAUTHORIZED ACCESS IS PROHIBITED. This system is monitored.";
+        idle-timeout 10;
+        user admin {
+            uid 2000;
+            class super-user;
+            authentication {
+                encrypted-password "$6$SOMEENCRYPTEDHASH";
+            }
+        }
+    }
+
+    services {
+        ssh {
+            root-login deny;
+            protocol-version v2;
+            rate-limit 10;
+        }
+        telnet;
+        /* Note: telnet service is still enabled for legacy device management */
+        netconf {
+            ssh;
+        }
+    }
+
+    syslog {
+        host 10.2.0.200 {
+            any info;
+            authorization info;
+        }
+        file messages {
+            any notice;
+            authorization info;
+        }
+        file interactive-commands {
+            interactive-commands any;
+        }
+    }
+
+    ntp {
+        server 10.2.0.100;
+        server 10.2.0.101;
+    }
+}
+
+interfaces {
+    ge-0/0/0 {
+        description "WAN-UPLINK";
+        unit 0 {
+            family inet {
+                address 198.51.100.1/30;
+            }
+        }
+    }
+    ge-0/0/1 {
+        description "LAN-SEGMENT";
+        unit 0 {
+            family inet {
+                address 172.16.0.1/24;
+                no-redirects;
+            }
+        }
+    }
+    lo0 {
+        description "LOOPBACK-MGMT";
+        unit 0 {
+            family inet {
+                address 10.2.0.1/32;
+            }
+        }
+    }
+}
+
+snmp {
+    location "Edge POP - Rack 3";
+    contact "netops@example.com";
+    community public {
+        authorization read-only;
+    }
+    v3 {
+        usm {
+            local-engine {
+                user netmon-v3 {
+                    authentication-sha {
+                        authentication-password "$9$SOMEAUTHPASS";
+                    }
+                    privacy-aes128 {
+                        privacy-password "$9$SOMEPRIVPASS";
+                    }
+                }
+            }
+        }
+        vacm {
+            security-to-group {
+                security-model usm {
+                    security-name netmon-v3 {
+                        group SNMP-V3-GROUP;
+                    }
+                }
+            }
+            access {
+                group SNMP-V3-GROUP {
+                    default-context-prefix {
+                        security-model usm {
+                            security-level privacy {
+                                read-view all;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+routing-options {
+    static {
+        route 0.0.0.0/0 next-hop 198.51.100.2;
+    }
+}
+
+firewall {
+    filter PROTECT-RE {
+        term ALLOW-SSH-TRUSTED {
+            from {
+                source-address {
+                    10.2.0.0/24;
+                }
+                protocol tcp;
+                destination-port ssh;
+            }
+            then accept;
+        }
+        term ALLOW-SNMP-V3 {
+            from {
+                source-address {
+                    10.2.0.50/32;
+                }
+                protocol udp;
+                destination-port snmp;
+            }
+            then accept;
+        }
+        term BLOCK-ALL-MGMT {
+            then {
+                reject;
+            }
+        }
+    }
+}
+
+protocols {
+    lldp {
+        interface all;
+    }
+}
