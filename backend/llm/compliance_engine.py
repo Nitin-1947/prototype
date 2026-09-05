@@ -1,13 +1,55 @@
 import json
+import logging
 from pathlib import Path
 from .gemini_client import call_gemini
 
 # Load CIS rules from JSON
 RULES_PATH = Path(__file__).parent.parent / "rules" / "cis_benchmarks.json"
+SEVERITY_WEIGHTS = {"critical": 4, "high": 3, "medium": 2, "low": 1}
+logger = logging.getLogger(__name__)
 
 def load_rules() -> list[dict]:
     with open(RULES_PATH, "r") as f:
         return json.load(f)
+
+
+def calculate_risk_weighted_score(rule_results: list[dict]) -> float:
+    """Calculate a 0-100 score weighted by severity and exposure risk."""
+    if not rule_results:
+        return 100.0
+
+    total_possible_risk = sum(int(rule.get("risk_score", 0)) for rule in rule_results)
+    if total_possible_risk <= 0:
+        return 100.0
+
+    weighted_bad_risk = 0.0
+    for rule in rule_results:
+        if rule.get("status") not in {"FAIL", "UNKNOWN"}:
+            continue
+        risk_score = int(rule.get("risk_score", 0))
+        penalty_fraction = 1.0
+        if rule.get("status") == "UNKNOWN":
+            penalty_fraction = 0.5
+        weighted_bad_risk += risk_score * penalty_fraction
+
+    score = 100.0 * (1.0 - weighted_bad_risk / total_possible_risk)
+    return round(max(0.0, min(100.0, score)), 1)
+
+
+def get_top_risks(rule_results: list[dict], limit: int = 3) -> list[dict]:
+    """Return the highest-risk failed or unknown controls for a device."""
+    candidates = [
+        {
+            "rule_id": rule.get("rule_id", "unknown-rule"),
+            "rule_name": rule.get("rule_name", "Unknown rule"),
+            "severity": rule.get("severity", "low"),
+            "risk_score": rule.get("risk_score", 0),
+            "fix_command": rule.get("fix_command"),
+        }
+        for rule in rule_results
+        if rule.get("status") in {"FAIL", "UNKNOWN"}
+    ]
+    return sorted(candidates, key=lambda item: item["risk_score"], reverse=True)[:limit]
 
 
 async def evaluate_rules(
@@ -21,12 +63,11 @@ async def evaluate_rules(
     """
     rules = load_rules()
     results = []
-    severity_weights = {"critical": 4, "high": 3, "medium": 2, "low": 1}
     for rule in rules:
         check = rule["check_logic"]
         setting_name = check.split(" must ", 1)[0]
         value = settings.get(setting_name)
-        expected = rule["expected"]
+        expected = rule.get("expected")
         if value is None:
             status, confidence = "UNKNOWN", 0.4
         elif " or " in check:
@@ -34,11 +75,15 @@ async def evaluate_rules(
             status, confidence = ("PASS", 0.95) if str(value).lower() in allowed else ("FAIL", 0.95)
         else:
             status, confidence = ("PASS", 0.95) if value == expected else ("FAIL", 0.95)
-        severity = rule["severity"]
-        exposure_weight = rule["exposure_weight"]
+        rule_id = rule.get("id", "unknown-rule")
+        severity = str(rule.get("severity", "low")).lower()
+        if severity not in SEVERITY_WEIGHTS:
+            logger.warning("Invalid severity %r for rule %s; defaulting to low", severity, rule_id)
+            severity = "low"
+        exposure_weight = rule.get("exposure_weight", 1)
         results.append({
-            "rule_id": rule["id"],
-            "rule_name": rule["name"],
+            "rule_id": rule_id,
+            "rule_name": rule.get("name", rule_id),
             "status": status,
             "confidence": confidence,
             "explanation": f"{setting_name} is {value!r}; expected {expected!r}.",
@@ -47,7 +92,7 @@ async def evaluate_rules(
             "severity": severity,
             "exposure_weight": exposure_weight,
             "frameworks": rule.get("frameworks", []),
-            "risk_score": severity_weights[severity] * exposure_weight,
+            "risk_score": SEVERITY_WEIGHTS.get(severity, 1) * exposure_weight,
         })
 
     return results
