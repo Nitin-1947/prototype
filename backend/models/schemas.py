@@ -54,6 +54,14 @@ class RuleResult(BaseModel):
             self.risk_score = severity_weight.get(self.severity, 1) * self.exposure_weight
 
 
+class RiskItem(BaseModel):
+    rule_id: str
+    rule_name: str
+    severity: str
+    risk_score: int = Field(ge=1, le=12)
+    fix_command: Optional[str] = None
+
+
 class DeviceResult(BaseModel):
     device_id: str
     device_name: str
@@ -61,6 +69,16 @@ class DeviceResult(BaseModel):
     compliance_score: float
     rule_results: List[RuleResult]
     extracted_settings: Dict[str, Any] = {}
+    top_risks: List[RiskItem] = []
+
+    def model_post_init(self, __context: Any) -> None:
+        try:
+            from llm.compliance_engine import calculate_risk_weighted_score, get_top_risks
+        except ImportError:
+            from backend.llm.compliance_engine import calculate_risk_weighted_score, get_top_risks
+        rule_data = [rule.model_dump() for rule in self.rule_results]
+        self.compliance_score = calculate_risk_weighted_score(rule_data)
+        self.top_risks = [RiskItem(**item) for item in get_top_risks(rule_data)]
 
 
 class DriftItem(BaseModel):
