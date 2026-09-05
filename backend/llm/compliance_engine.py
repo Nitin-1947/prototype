@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from .gemini_client import call_gemini
 
 # Load CIS rules from JSON
 RULES_PATH = Path(__file__).parent.parent / "rules" / "cis_benchmarks.json"
@@ -20,6 +21,7 @@ async def evaluate_rules(
     """
     rules = load_rules()
     results = []
+    severity_weights = {"critical": 4, "high": 3, "medium": 2, "low": 1}
     for rule in rules:
         check = rule["check_logic"]
         setting_name = check.split(" must ", 1)[0]
@@ -32,6 +34,8 @@ async def evaluate_rules(
             status, confidence = ("PASS", 0.95) if str(value).lower() in allowed else ("FAIL", 0.95)
         else:
             status, confidence = ("PASS", 0.95) if value == expected else ("FAIL", 0.95)
+        severity = rule["severity"]
+        exposure_weight = rule["exposure_weight"]
         results.append({
             "rule_id": rule["id"],
             "rule_name": rule["name"],
@@ -40,7 +44,10 @@ async def evaluate_rules(
             "explanation": f"{setting_name} is {value!r}; expected {expected!r}.",
             "config_snippet": f"{setting_name}: {value!r}",
             "fix_command": rule.get("fix_commands", {}).get(vendor) if status == "FAIL" else None,
+            "severity": severity,
+            "exposure_weight": exposure_weight,
             "frameworks": rule.get("frameworks", []),
+            "risk_score": severity_weights[severity] * exposure_weight,
         })
 
     return results
