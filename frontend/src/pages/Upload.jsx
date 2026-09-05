@@ -129,7 +129,7 @@ export default function Upload() {
         )}
       </button>
       <p style={{ textAlign: "center", fontSize: "0.8rem", color: "var(--text-muted)", marginTop: "0.75rem" }}>
-        Powered by Gemini AI · CIS Benchmark v8 · Zero-parser config understanding
+        Powered by local Ollama · CIS Benchmark v8 · Zero-parser config understanding
       </p>
     </div>
   );

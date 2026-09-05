@@ -1,19 +1,21 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,400,0,0&display=swap');
 
 /* ─── CSS Variables ─────────────────────────────────────────────────────── */
 :root {
-  --bg-base: #080c14;
-  --bg-surface: #0d1321;
-  --bg-card: #111827;
-  --bg-card-hover: #161f30;
+  --bg-base: #0a0e16;
+  --bg-surface: #181c24;
+  --bg-card: #1c2028;
+  --bg-card-hover: #262a33;
   --bg-glass: rgba(255, 255, 255, 0.03);
   --bg-glass-hover: rgba(255, 255, 255, 0.06);
 
-  --accent-primary: #3b82f6;
-  --accent-primary-glow: rgba(59, 130, 246, 0.3);
-  --accent-cyan: #06b6d4;
+  --accent-primary: #4cd7f6;
+  --accent-primary-glow: rgba(76, 215, 246, 0.22);
+  --accent-cyan: #1bbd85;
   --accent-cyan-glow: rgba(6, 182, 212, 0.2);
-  --accent-violet: #8b5cf6;
+  --accent-violet: #c0c1ff;
   --accent-green: #10b981;
   --accent-green-glow: rgba(16, 185, 129, 0.2);
   --accent-red: #ef4444;
@@ -21,16 +23,16 @@
   --accent-amber: #f59e0b;
   --accent-amber-glow: rgba(245, 158, 11, 0.2);
 
-  --text-primary: #f1f5f9;
-  --text-secondary: #94a3b8;
-  --text-muted: #475569;
+  --text-primary: #dfe2ee;
+  --text-secondary: #bcc9cd;
+  --text-muted: #869397;
   --text-code: #7dd3fc;
 
-  --border: rgba(255, 255, 255, 0.07);
-  --border-active: rgba(59, 130, 246, 0.4);
-  --radius: 12px;
-  --radius-sm: 8px;
-  --radius-lg: 16px;
+  --border: #3d494c;
+  --border-active: rgba(76, 215, 246, 0.6);
+  --radius: 4px;
+  --radius-sm: 2px;
+  --radius-lg: 6px;
 
   --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.4);
   --shadow-glow-blue: 0 0 20px rgba(59, 130, 246, 0.15);
@@ -48,10 +50,12 @@ html { scroll-behavior: smooth; }
 
 body {
   font-family: 'Inter', system-ui, sans-serif;
-  background: var(--bg-base);
+  background-color: var(--bg-base);
+  background-image: linear-gradient(rgba(61, 73, 76, 0.12) 1px, transparent 1px), linear-gradient(90deg, rgba(61, 73, 76, 0.12) 1px, transparent 1px);
+  background-size: 24px 24px;
   color: var(--text-primary);
   min-height: 100vh;
-  line-height: 1.6;
+  line-height: 1.45;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -64,13 +68,54 @@ body {
 /* ─── Layout ─────────────────────────────────────────────────────────────── */
 #root { display: flex; flex-direction: column; min-height: 100vh; }
 
+.topbar {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 100;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1rem;
+  background: rgba(10, 14, 22, 0.96);
+  border-bottom: 1px solid var(--border);
+}
+
+.brand-lockup { display: flex; align-items: center; gap: 0.65rem; color: var(--text-primary); text-decoration: none; min-width: 245px; }
+.brand-mark, .rail-emblem, .icon-button, .rail-link span { font-family: 'Material Symbols Outlined'; font-weight: normal; font-style: normal; font-size: 20px; line-height: 1; }
+.brand-mark { width: 30px; height: 30px; display: grid; place-items: center; color: #071018; background: var(--accent-primary); border-radius: 3px; }
+.brand-lockup strong { display: block; font-family: 'Space Grotesk', sans-serif; color: var(--accent-primary); text-transform: uppercase; letter-spacing: 0.04em; font-size: 1rem; }
+.brand-lockup small { display: block; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.08em; }
+.topbar-links { display: flex; align-items: center; gap: 1.4rem; height: 100%; }
+.top-link { height: 100%; display: grid; place-items: center; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; text-decoration: none; border-bottom: 2px solid transparent; }
+.top-link:hover, .top-link.active { color: var(--accent-primary); border-color: var(--accent-primary); }
+.topbar-actions { display: flex; align-items: center; gap: 0.75rem; min-width: 245px; justify-content: flex-end; }
+.engine-status { display: flex; align-items: center; gap: 0.4rem; color: var(--accent-green); font: 0.68rem 'JetBrains Mono', monospace; }
+.engine-status i { display: block; width: 7px; height: 7px; border-radius: 50%; background: var(--accent-green); box-shadow: 0 0 8px var(--accent-green); }
+.icon-button { color: var(--text-muted); background: transparent; border: 0; cursor: pointer; padding: 0.4rem; }
+.icon-button:hover { color: var(--accent-primary); }
+.tactical-rail { position: fixed; z-index: 90; top: 56px; bottom: 0; left: 0; width: 56px; padding: 0.75rem 0.4rem; display: flex; flex-direction: column; align-items: stretch; background: rgba(24, 28, 36, 0.96); border-right: 1px solid var(--border); transition: width 180ms ease; overflow: hidden; }
+.tactical-rail:hover { width: 220px; }
+.rail-emblem { text-align: center; color: var(--accent-primary); padding: 0.35rem; }
+.rail-label { opacity: 0; white-space: nowrap; color: var(--accent-primary); font: 700 0.7rem 'Space Grotesk', sans-serif; text-transform: uppercase; padding: 0 0.5rem 0.8rem; border-bottom: 1px solid var(--border); transition: opacity 150ms ease; }
+.rail-label span { display: block; color: var(--text-muted); font: 0.58rem 'JetBrains Mono', monospace; margin-top: 0.2rem; text-transform: none; }
+.tactical-rail:hover .rail-label { opacity: 1; }
+.rail-link { display: flex; align-items: center; gap: 0.85rem; min-height: 42px; padding: 0 0.55rem; color: var(--text-muted); text-decoration: none; border-left: 2px solid transparent; white-space: nowrap; }
+.rail-link:hover, .rail-link.active { color: var(--text-primary); background: var(--bg-card-hover); border-left-color: var(--accent-primary); }
+.rail-link b { opacity: 0; font: 0.7rem 'JetBrains Mono', monospace; font-weight: 500; transition: opacity 150ms ease; }
+.tactical-rail:hover .rail-link b { opacity: 1; }
+.rail-spacer { flex: 1; }
+
 .page-wrapper {
   flex: 1;
-  padding: 2rem;
-  max-width: 1400px;
-  margin: 0 auto;
+  padding: 1.5rem;
+  padding-top: 5rem;
+  max-width: 1920px;
+  margin: 0 0 0 56px;
   width: 100%;
 }
+
+.page-wrapper > * { position: relative; }
 
 /* ─── Navbar ─────────────────────────────────────────────────────────────── */
 .navbar {

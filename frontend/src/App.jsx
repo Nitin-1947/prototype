@@ -15,26 +15,40 @@ function Navbar() {
   };
 
   return (
-    <nav className="navbar">
-      <NavLink to="/" className="navbar-brand" style={{ textDecoration: "none" }}>
-        <div className="navbar-logo">🛡️</div>
-        <div>
-          <div className="navbar-title">NetSentinel</div>
-          <div className="navbar-subtitle">AI Compliance Analyzer</div>
+    <>
+      <header className="topbar">
+        <NavLink to="/" className="brand-lockup">
+          <span className="brand-mark">shield</span>
+          <span>
+            <strong>NetSentinel</strong>
+            <small>AI compliance workbench</small>
+          </span>
+        </NavLink>
+        <div className="topbar-links">
+          <NavLink to="/upload" className={({ isActive }) => `top-link${isActive ? " active" : ""}`}>Upload</NavLink>
+          <NavLink to="/dashboard" className={({ isActive }) => `top-link${isActive ? " active" : ""}`}>Dashboard</NavLink>
+          <NavLink to="/dashboard" className="top-link">Device Details</NavLink>
         </div>
-      </NavLink>
-      <div className="navbar-nav">
-        <NavLink to="/upload" className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}>
-          ↑ Upload
+        <div className="topbar-actions">
+          <span className="engine-status"><i /> Ollama LLM: Active</span>
+          <button className="icon-button" title="Reset workspace" onClick={handleReset}>restart_alt</button>
+        </div>
+      </header>
+      <aside className="tactical-rail">
+        <div className="rail-emblem">verified_user</div>
+        <div className="rail-label">NetSentinel SOC<span>Local LLM engine</span></div>
+        <NavLink to="/dashboard" className={({ isActive }) => `rail-link${isActive ? " active" : ""}`}>
+          <span>security</span><b>Workbench</b>
         </NavLink>
-        <NavLink to="/dashboard" className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}>
-          ▦ Dashboard
+        <NavLink to="/upload" className={({ isActive }) => `rail-link${isActive ? " active" : ""}`}>
+          <span>router</span><b>Audited Nodes</b>
         </NavLink>
-        <button className="btn btn-danger btn-sm" onClick={handleReset}>
-          ↺ Reset
-        </button>
-      </div>
-    </nav>
+        <a className="rail-link" href="#rules"><span>verified</span><b>CIS Benchmarks</b></a>
+        <a className="rail-link" href="#telemetry"><span>terminal</span><b>Telemetry Logs</b></a>
+        <div className="rail-spacer" />
+        <a className="rail-link" href="#settings"><span>settings</span><b>Settings</b></a>
+      </aside>
+    </>
   );
 }
 
