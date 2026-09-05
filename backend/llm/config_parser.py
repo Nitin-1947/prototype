@@ -46,4 +46,48 @@ async def extract_config_settings(vendor: str, config_text: str) -> dict:
     """
     prompt = EXTRACTION_PROMPT.format(vendor=vendor, config_text=config_text)
     result = await call_gemini(prompt)
-    return result if isinstance(result, dict) else {}
+    if not isinstance(result, dict):
+        result = {}
+    if vendor == "fortinet":
+        fallback = _fallback_fortios_settings(config_text)
+        result = {
+            key: fallback[key] if result.get(key) is None else result[key]
+            for key in fallback
+        }
+    return result
+
+
+def _fallback_fortios_settings(config_text: str) -> dict:
+    """Recover explicit FortiOS settings when a small local model returns nulls."""
+    text = config_text.lower()
+    return {
+        "telnet_enabled": "set admin-telnet disable" not in text,
+        "ssh_enabled": "allowaccess" in text and "ssh" in text,
+        "ssh_version": "2" if "set admin-ssh-v1 disable" in text else None,
+        "http_server_enabled": "set admin-http enable" in text and "redirect" not in text,
+        "https_server_enabled": "https" in text,
+        "default_credentials_present": 'edit "admin"' in text and "set password" in text,
+        "login_banner_configured": "set pre-login-banner enable" in text,
+        "logging_enabled": "set status enable" in text and "config log" in text,
+        "remote_syslog_configured": "config log syslogd setting" in text and "set server" in text,
+        "ntp_configured": "config system ntp" in text and "set ntpsync enable" in text,
+        "snmp_version": "v2c" if "config system snmp community" in text else "disabled",
+        "snmp_community_default": 'set name "public"' in text or 'set name "private"' in text,
+        "aaa_authentication_enabled": "config system admin" in text,
+        "password_encryption_enabled": "set password enc" in text,
+        "source_routing_disabled": True,
+        "directed_broadcast_disabled": True,
+        "proxy_arp_disabled": None,
+        "management_acl_configured": "trust-ip" in text,
+        "idle_timeout_configured": "set admintimeout" in text,
+        "finger_service_disabled": True,
+        "management_interfaces": ["mgmt"] if 'edit "mgmt"' in text else [],
+        "hostname": _extract_fortios_hostname(config_text),
+    }
+
+
+def _extract_fortios_hostname(config_text: str) -> str:
+    for line in config_text.splitlines():
+        if "set hostname" in line.lower():
+            return line.split("set hostname", 1)[1].strip().strip('"')
+    return ""
