@@ -101,3 +101,15 @@ class NLQueryResponse(BaseModel):
     answer: str
     relevant_devices: List[str] = []
     cited_rules: List[str] = []
+
+
+class FixPreview(BaseModel):
+    rule_id: str
+    rule_name: str
+    before: Optional[str] = None
+    after: Optional[str] = None
+    severity: str
+    risk_score: int
+    lockout_risk: bool
+    lockout_warning: Optional[str] = None
+    state: str = "dry_run_reviewed"  # not_applied | dry_run_reviewed | simulated_applied
