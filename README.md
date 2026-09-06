@@ -33,7 +33,7 @@ Every rule failure is scored by **severity × exposure**, not counted equally. A
 
 Each of the 15 CIS-oriented rules also carries mappings to **NIST 800-53** and **PCI-DSS** control IDs, so one scan produces audit evidence for multiple compliance frameworks simultaneously — not just CIS.
 
-![Rule detail with severity and risk score](images/)
+![Rule detail with severity and risk score](images/image-1.png)
 *Per-rule severity, exposure weight, risk score, and multi-framework mapping (CIS / NIST / PCI-DSS).*
 
 ### 2. Safety-envelope remediation (dry-run → lockout check → simulated apply)
@@ -57,7 +57,7 @@ flowchart LR
 
 The lockout check is **context-aware**, not a static warning on every fix. For example, disabling Telnet (`CIS-1.1`) only raises a hard warning if SSH isn't already confirmed enabled in that device's config; a Management ACL change (`CIS-1.13`) is always flagged, since there's no reliable compensating control to check for. `Simulate Apply` is deliberately gated behind `Preview Fix` at the API level — you cannot apply a change you haven't reviewed.
 
-![Lockout warning on a critical fix](![alt text](image-2.png))
+![Lockout warning on a critical fix](images/image-2.png)
 *A Management ACL fix flagged as lockout-risk, with the before/after diff shown before any action is taken.*
 
 This is a prototype-level safety model, not a production auto-remediation system — no real device connection exists yet (see [Known Limitations](#known-limitations)). The point being demonstrated is the *workflow*: prioritize by real risk, preview before applying, and flag the specific ways a fix could break access — rather than a flat list of commands with no guardrails.
