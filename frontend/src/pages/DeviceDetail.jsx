@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { getAllResults } from "../api/client";
+import { getAllResults, simulateFix, simulateApply, getFixState } from "../api/client";     
 
 const VENDOR_META = {
   cisco: { cls: "vendor-cisco", icon: "🔵", label: "Cisco IOS" },
@@ -53,16 +53,53 @@ function ScoreRing({ score }) {
 export default function DeviceDetail() {
   const { deviceId } = useParams();
   const navigate = useNavigate();
-  const [result, setResult] = useState(null);
+   const [result, setResult] = useState(null);
   const [filter, setFilter] = useState("ALL");
   const [expandedRule, setExpandedRule] = useState(null);
+  const [fixPreviews, setFixPreviews] = useState({});
+  const [fixLoading, setFixLoading] = useState({});
 
   useEffect(() => {
     getAllResults().then((all) => {
       const found = all.find((r) => r.device_id === deviceId);
       setResult(found || null);
     });
+    getFixState(deviceId).then((state) => {
+      setFixPreviews((prev) => {
+        const restored = { ...prev };
+        Object.entries(state || {}).forEach(([ruleId, s]) => {
+          if (!restored[ruleId]) restored[ruleId] = { state: s };
+        });
+        return restored;
+      });
+    }).catch(() => {});
   }, [deviceId]);
+
+  const handlePreviewFix = async (ruleId) => {
+    setFixLoading((p) => ({ ...p, [ruleId]: "preview" }));
+    try {
+      const preview = await simulateFix(deviceId, ruleId);
+      setFixPreviews((p) => ({ ...p, [ruleId]: preview }));
+    } catch (err) {
+      const msg = err?.response?.data?.detail || "Failed to preview fix.";
+      setFixPreviews((p) => ({ ...p, [ruleId]: { error: msg } }));
+    } finally {
+      setFixLoading((p) => ({ ...p, [ruleId]: null }));
+    }
+  };
+
+  const handleSimulateApply = async (ruleId) => {
+    setFixLoading((p) => ({ ...p, [ruleId]: "apply" }));
+    try {
+      const applied = await simulateApply(deviceId, ruleId);
+      setFixPreviews((p) => ({ ...p, [ruleId]: applied }));
+    } catch (err) {
+      const msg = err?.response?.data?.detail || "Failed to apply fix.";
+      setFixPreviews((p) => ({ ...p, [ruleId]: { ...(fixPreviews[ruleId] || {}), error: msg } }));
+    } finally {
+      setFixLoading((p) => ({ ...p, [ruleId]: null }));
+    }
+  };
 
   if (!result) {
     return (
@@ -237,18 +274,99 @@ export default function DeviceDetail() {
                           </div>
                         )}
 
-                        {/* Fix command */}
-                        {rule.fix_command && rule.status === "FAIL" && (
-                          <div>
-                            <div style={{ fontSize: "0.75rem", color: "var(--accent-green)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "0.4rem" }}>
-                              🔧 Remediation Command ({result.vendor})
+                                               {rule.fix_command && rule.status === "FAIL" && (() => {
+                          const preview = fixPreviews[rule.rule_id];
+                          const loading = fixLoading[rule.rule_id];
+                          const state = preview?.state;
+
+                          return (
+                            <div>
+                              <div style={{ fontSize: "0.75rem", color: "var(--accent-green)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "0.4rem" }}>
+                                🔧 Remediation ({result.vendor})
+                              </div>
+
+                              {!preview && (
+                                <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                                  <div className="code-block" style={{ flex: 1, position: "relative", borderColor: "rgba(16,185,129,0.2)", background: "rgba(16,185,129,0.04)" }}>
+                                    {rule.fix_command}
+                                    <CopyButton text={rule.fix_command} />
+                                  </div>
+                                  <button
+                                    className="btn btn-sm btn-secondary"
+                                    disabled={loading === "preview"}
+                                    onClick={(e) => { e.stopPropagation(); handlePreviewFix(rule.rule_id); }}
+                                  >
+                                    {loading === "preview" ? "Checking…" : "🔍 Preview Fix"}
+                                  </button>
+                                </div>
+                              )}
+
+                              {preview?.error && (
+                                <div className="alert alert-error" style={{ marginBottom: "0.5rem" }}>{preview.error}</div>
+                              )}
+
+                              {preview && !preview.error && (
+                                <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
+                                  {(preview.before || preview.after) && (
+                                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.6rem" }}>
+                                      <div>
+                                        <div style={{ fontSize: "0.68rem", color: "var(--text-muted)", marginBottom: "0.25rem" }}>BEFORE</div>
+                                        <div className="code-block" style={{ borderColor: "rgba(239,68,68,0.25)", background: "rgba(239,68,68,0.05)", fontSize: "0.78rem" }}>
+                                          − {preview.before || rule.config_snippet}
+                                        </div>
+                                      </div>
+                                      <div>
+                                        <div style={{ fontSize: "0.68rem", color: "var(--text-muted)", marginBottom: "0.25rem" }}>AFTER</div>
+                                        <div className="code-block" style={{ borderColor: "rgba(16,185,129,0.25)", background: "rgba(16,185,129,0.05)", fontSize: "0.78rem", whiteSpace: "pre-wrap" }}>
+                                          + {preview.after || rule.fix_command}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {preview.lockout_risk && (
+                                    <div className="alert alert-error" style={{ display: "flex", gap: "0.5rem", alignItems: "flex-start" }}>
+                                      <span>⚠️</span>
+                                      <div>
+                                        <strong>Lockout risk detected.</strong> {preview.lockout_warning}
+                                      </div>
+                                    </div>
+                                  )}
+                                  {!preview.lockout_risk && preview.lockout_warning && (
+                                    <div className="alert" style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.3)", color: "var(--accent-amber)", display: "flex", gap: "0.5rem", alignItems: "flex-start" }}>
+                                      <span>ℹ️</span>
+                                      <div>{preview.lockout_warning}</div>
+                                    </div>
+                                  )}
+
+                                  <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                                    {state === "simulated_applied" ? (
+                                      <span className="badge badge-pass">✓ Simulated Applied — no real device was touched</span>
+                                    ) : (
+                                      <button
+                                        className={`btn btn-sm ${preview.lockout_risk ? "btn-secondary" : "btn-primary"}`}
+                                        disabled={loading === "apply"}
+                                        onClick={(e) => { e.stopPropagation(); handleSimulateApply(rule.rule_id); }}
+                                      >
+                                        {loading === "apply"
+                                          ? "Applying…"
+                                          : preview.lockout_risk
+                                          ? "⚠️ Simulate Apply Anyway"
+                                          : "✅ Simulate Apply"}
+                                      </button>
+                                    )}
+                                    <button
+                                      className="btn btn-sm btn-secondary"
+                                      onClick={(e) => { e.stopPropagation(); handlePreviewFix(rule.rule_id); }}
+                                    >
+                                      🔄 Re-check
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
                             </div>
-                            <div className="code-block" style={{ position: "relative", borderColor: "rgba(16,185,129,0.2)", background: "rgba(16,185,129,0.04)" }}>
-                              {rule.fix_command}
-                              <CopyButton text={rule.fix_command} />
-                            </div>
-                          </div>
-                        )}
+                          );
+                        })()}
                       </div>
                     </td>
                   </tr>
