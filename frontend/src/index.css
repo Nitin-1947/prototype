@@ -46,8 +46,7 @@
 /* ─── Reset ─────────────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-html { scroll-behavior: smooth; }
-
+html { scroll-behavior: smooth; overflow-x: hidden; }
 body {
   font-family: 'Inter', system-ui, sans-serif;
   background-color: var(--bg-base);
@@ -56,7 +55,8 @@ body {
   color: var(--text-primary);
   min-height: 100vh;
   line-height: 1.45;
-  -webkit-font-smoothing: antialiased;
+   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
 }
 
 /* ─── Scrollbar ─────────────────────────────────────────────────────────── */
@@ -109,7 +109,7 @@ body {
   padding-top: 5rem;
   max-width: 1920px;
   margin: 0 0 0 220px;
-  width: 100%;
+  width: calc(100% - 220px);
 }
 
 .operations-page { min-height: calc(100vh - 56px); }
@@ -306,9 +306,31 @@ body {
   border: 1px solid rgba(100,116,139,0.3);
 }
 
+.badge-critical { background: var(--accent-red); color: #fff; border: 1px solid var(--accent-red); box-shadow: 0 0 10px rgba(239,68,68,0.45); }
 .badge-high { background: var(--accent-red-glow); color: var(--accent-red); border: 1px solid rgba(239,68,68,0.3); }
 .badge-medium { background: var(--accent-amber-glow); color: var(--accent-amber); border: 1px solid rgba(245,158,11,0.3); }
 .badge-low { background: var(--accent-green-glow); color: var(--accent-green); border: 1px solid rgba(16,185,129,0.3); }
+/* ─── Top Risks Panel ────────────────────────────────────────────────────── */
+.top-risk-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  margin-bottom: 0.5rem;
+}
+.top-risk-row:hover { border-color: rgba(239,68,68,0.35); cursor: pointer; }
+.mini-risk-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  padding: 0.2rem 0;
+}
 
 /* ─── Score Ring ─────────────────────────────────────────────────────────── */
 .score-ring-wrapper {
@@ -487,7 +509,7 @@ body {
   .tactical-rail { width: 52px; }
   .tactical-rail:hover { width: 52px; }
   .rail-label, .rail-link b { opacity: 0; }
-  .page-wrapper { padding: 1rem; margin-left: 52px; }
+  .page-wrapper { padding: 1rem; margin-left: 52px; width: calc(100% - 52px); }
 }
 
 /* ─── Vendor Chips ───────────────────────────────────────────────────────── */
