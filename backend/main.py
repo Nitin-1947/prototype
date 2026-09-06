@@ -121,7 +121,7 @@ async def analyze_device(device_id: str):
         device_id=device_id,
         device_name=device["device_name"],
         vendor=device["vendor"],
-                compliance_score=0.0,  # recalculated by DeviceResult.model_post_init from rule_results
+        compliance_score=0.0,  # recalculated by DeviceResult.model_post_init from rule_results
         rule_results=rule_results,
         extracted_settings=settings,
     )
