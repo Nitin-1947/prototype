@@ -11,9 +11,10 @@ from models.schemas import (
     RuleResult,
     DriftReport,
     DriftItem,
+    FixPreview,
 )
 from llm.config_parser import extract_config_settings
-from llm.compliance_engine import evaluate_rules, detect_drift
+from llm.compliance_engine import evaluate_rules, detect_drift, build_fix_preview
 from llm.nl_query import answer_nl_query
 
 app = FastAPI(title="NetSentinel API", version="1.0.0")
@@ -31,7 +32,7 @@ app.add_middleware(
 # ---------------------------------------------------------------------------
 _device_store: dict[str, dict] = {}  # device_id -> raw data
 _results_store: dict[str, DeviceResult] = {}  # device_id -> result
-
+_fix_state_store: dict[str, dict[str, str]] = {}  # device_id -> {rule_id: state}
 
 # ---------------------------------------------------------------------------
 # Sample config loader helper
@@ -101,11 +102,7 @@ async def analyze_device(device_id: str):
             detail=str(exc),
         ) from exc
 
-    # Step 3: Calculate compliance score
-    passed = sum(1 for r in raw_results if r.get("status") == "PASS")
-    total = len(raw_results)
-    score = round((passed / total) * 100, 1) if total > 0 else 0.0
-
+    
     rule_results = [
         RuleResult(
             rule_id=r["rule_id"],
@@ -124,7 +121,7 @@ async def analyze_device(device_id: str):
         device_id=device_id,
         device_name=device["device_name"],
         vendor=device["vendor"],
-        compliance_score=score,
+                compliance_score=0.0,  # recalculated by DeviceResult.model_post_init from rule_results
         rule_results=rule_results,
         extracted_settings=settings,
     )
@@ -148,7 +145,67 @@ async def analyze_all():
             results.append(_results_store[device_id])
     return results
 
+# ---------------------------------------------------------------------------
+# Safety Envelope: Dry-Run Preview + Simulated Apply
+# ---------------------------------------------------------------------------
+@app.post("/api/simulate-fix/{device_id}/{rule_id}", response_model=FixPreview)
+async def simulate_fix(device_id: str, rule_id: str):
+    """
+    Dry-run preview of a rule's remediation. Shows a before/after diff and flags
+    lockout risk. Does NOT touch any real device and does NOT apply anything.
+    """
+    if device_id not in _results_store:
+        raise HTTPException(status_code=404, detail="No analysis found for this device. Run /analyze first.")
 
+    result = _results_store[device_id]
+    rule = next((r for r in result.rule_results if r.rule_id == rule_id), None)
+    if rule is None:
+        raise HTTPException(status_code=404, detail="Rule not found for this device.")
+    if rule.status != "FAIL":
+        raise HTTPException(status_code=400, detail="Only FAILED rules have a remediation to preview.")
+
+    settings = _device_store[device_id].get("settings", {})
+    preview = build_fix_preview(rule.model_dump(), settings)
+
+    _fix_state_store.setdefault(device_id, {})[rule_id] = "dry_run_reviewed"
+
+    return FixPreview(**preview, state="dry_run_reviewed")
+
+
+@app.post("/api/simulate-apply/{device_id}/{rule_id}", response_model=FixPreview)
+async def simulate_apply(device_id: str, rule_id: str):
+    """
+    Marks a fix as simulated-applied. Requires a prior dry-run preview for that
+    rule, mirroring the real-world "review before apply" workflow. No real
+    device is touched — this only updates in-memory demo state.
+    """
+    if device_id not in _results_store:
+        raise HTTPException(status_code=404, detail="No analysis found for this device. Run /analyze first.")
+
+    current_state = _fix_state_store.get(device_id, {}).get(rule_id, "not_applied")
+    if current_state == "not_applied":
+        raise HTTPException(
+            status_code=400,
+            detail="Preview the fix (dry run) before simulating apply.",
+        )
+
+    result = _results_store[device_id]
+    rule = next((r for r in result.rule_results if r.rule_id == rule_id), None)
+    if rule is None:
+        raise HTTPException(status_code=404, detail="Rule not found for this device.")
+
+    settings = _device_store[device_id].get("settings", {})
+    preview = build_fix_preview(rule.model_dump(), settings)
+
+    _fix_state_store[device_id][rule_id] = "simulated_applied"
+
+    return FixPreview(**preview, state="simulated_applied")
+
+
+@app.get("/api/fix-state/{device_id}")
+async def get_fix_state(device_id: str):
+    """Return the current dry-run/apply state of every rule for a device."""
+    return _fix_state_store.get(device_id, {})
 # ---------------------------------------------------------------------------
 # Results
 # ---------------------------------------------------------------------------
