@@ -97,7 +97,66 @@ async def evaluate_rules(
 
     return results
 
+# Rules where applying the fix could disrupt the operator's own management access
+# if the compensating control isn't already confirmed present.
+LOCKOUT_SENSITIVE_RULES = {
+    "CIS-1.1": {
+        "compensating_setting": "ssh_enabled",
+        "warning": "Disabling Telnet will cut off management access unless SSH is already enabled and reachable. Confirm SSH works before applying this on a live device.",
+    },
+    "CIS-1.2": {
+        "compensating_setting": None,
+        "warning": "Enforcing SSHv2 only may drop sessions from clients/scripts still negotiating SSHv1. Confirm your management tooling supports SSHv2 first.",
+    },
+    "CIS-1.3": {
+        "compensating_setting": "https_server_enabled",
+        "warning": "Disabling the HTTP server will break management access unless HTTPS is already enabled and reachable.",
+    },
+    "CIS-1.9": {
+        "compensating_setting": None,
+        "warning": "Enabling AAA authentication with a misconfigured server/local fallback can lock out all administrative access. Verify a local fallback account exists first.",
+    },
+    "CIS-1.13": {
+        "compensating_setting": None,
+        "warning": "A management ACL that excludes your current source IP will immediately lock you out of the device. Confirm your management subnet is included in the ACL before applying.",
+    },
+}
 
+
+def get_lockout_assessment(rule_id: str, settings: dict) -> dict:
+    """
+    Determine whether applying a rule's fix carries lockout risk, and why.
+    Returns {"lockout_risk": bool, "lockout_warning": str | None}.
+    """
+    meta = LOCKOUT_SENSITIVE_RULES.get(rule_id)
+    if not meta:
+        return {"lockout_risk": False, "lockout_warning": None}
+
+    compensating_setting = meta["compensating_setting"]
+    if compensating_setting and settings.get(compensating_setting) is True:
+        return {
+            "lockout_risk": False,
+            "lockout_warning": f"{meta['warning']} (Compensating control '{compensating_setting}' appears enabled in this config, but verify reachability before applying.)",
+        }
+
+    return {"lockout_risk": True, "lockout_warning": meta["warning"]}
+
+
+def build_fix_preview(rule_result: dict, settings: dict) -> dict:
+    """
+    Build a dry-run diff preview for a single rule's fix, without touching any real device.
+    """
+    lockout = get_lockout_assessment(rule_result["rule_id"], settings)
+    return {
+        "rule_id": rule_result["rule_id"],
+        "rule_name": rule_result["rule_name"],
+        "before": rule_result.get("config_snippet"),
+        "after": rule_result.get("fix_command"),
+        "severity": rule_result.get("severity"),
+        "risk_score": rule_result.get("risk_score"),
+        "lockout_risk": lockout["lockout_risk"],
+        "lockout_warning": lockout["lockout_warning"],
+    }
 DRIFT_PROMPT = """
 You are a network policy consistency analyst. Below are the extracted security settings
 from multiple network devices across different vendors.
