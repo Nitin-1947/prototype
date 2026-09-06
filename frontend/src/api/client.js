@@ -25,3 +25,13 @@ export const nlQuery = (question) =>
 
 export const resetAll = () =>
   API.delete("/api/reset").then((r) => r.data);
+
+
+export const simulateFix = (device_id, rule_id) =>
+  API.post(`/api/simulate-fix/${device_id}/${rule_id}`).then((r) => r.data);
+
+export const simulateApply = (device_id, rule_id) =>
+  API.post(`/api/simulate-apply/${device_id}/${rule_id}`).then((r) => r.data);
+
+export const getFixState = (device_id) =>
+  API.get(`/api/fix-state/${device_id}`).then((r) => r.data);
