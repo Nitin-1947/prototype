@@ -4,7 +4,7 @@ NetSentinel is an AI-assisted network configuration compliance analyzer for Cisc
 
 The project is designed as a working prototype: the frontend is React/Vite, the API is FastAPI, and the local language model runs through Ollama. No cloud LLM API key is required for the default setup.
 
-![Dashboard with Top Risks panel](![alt text](image.png))
+![Dashboard with Top Risks panel](images/image.png)
 *The dashboard surfaces the highest-priority failures across your entire fleet first, ranked by severity × exposure — not just a flat pass/fail percentage.*
 
 ## Why NetSentinel
@@ -33,7 +33,7 @@ Every rule failure is scored by **severity × exposure**, not counted equally. A
 
 Each of the 15 CIS-oriented rules also carries mappings to **NIST 800-53** and **PCI-DSS** control IDs, so one scan produces audit evidence for multiple compliance frameworks simultaneously — not just CIS.
 
-![Rule detail with severity and risk score](![alt text](image-1.png))
+![Rule detail with severity and risk score](images/)
 *Per-rule severity, exposure weight, risk score, and multi-framework mapping (CIS / NIST / PCI-DSS).*
 
 ### 2. Safety-envelope remediation (dry-run → lockout check → simulated apply)
