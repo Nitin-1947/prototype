@@ -8,6 +8,18 @@ const VENDOR_META = {
   juniper: { cls: "vendor-juniper", icon: "🟢", label: "Juniper" },
 };
 
+const SEVERITY_BADGE = {
+  critical: "badge-critical",
+  high: "badge-high",
+  medium: "badge-medium",
+  low: "badge-low",
+};
+
+function SeverityBadge({ severity }) {
+  const cls = SEVERITY_BADGE[severity] || "badge-unknown";
+  return <span className={`badge ${cls}`} style={{ textTransform: "uppercase", fontSize: "0.65rem" }}>{severity || "unknown"}</span>;
+}
+
 function ScoreRing({ score }) {
   const r = 36;
   const circ = 2 * Math.PI * r;
@@ -128,6 +140,71 @@ function NLQueryBox({ results }) {
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+function NetworkTopRisksPanel({ results, onSelectDevice }) {
+  const allRisks = results
+    .flatMap((r) =>
+      (r.top_risks || []).map((risk) => ({
+        ...risk,
+        device_id: r.device_id,
+        device_name: r.device_name,
+        vendor: r.vendor,
+      }))
+    )
+    .sort((a, b) => b.risk_score - a.risk_score)
+    .slice(0, 5);
+
+  if (allRisks.length === 0) {
+    return (
+      <div className="card" style={{ marginBottom: "2rem" }}>
+        <div className="alert alert-success">✓ No high-risk failures found across analyzed devices.</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="card" style={{ marginBottom: "2rem" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "1rem" }}>
+        <div style={{ fontSize: "1.2rem" }}>🔥</div>
+        <div>
+          <div style={{ fontWeight: 700, fontSize: "1rem" }}>Top Risks Across Your Network</div>
+          <div style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
+            Highest-priority failures, ranked by severity × exposure — fix these first
+          </div>
+        </div>
+      </div>
+
+      {allRisks.map((risk, i) => {
+        const vm = VENDOR_META[risk.vendor] || { cls: "", icon: "●", label: risk.vendor };
+        return (
+          <div
+            className="top-risk-row"
+            key={`${risk.device_id}-${risk.rule_id}-${i}`}
+            onClick={() => onSelectDevice(risk.device_id)}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", minWidth: 0 }}>
+              <span style={{ fontWeight: 800, color: "var(--text-muted)", fontSize: "0.85rem" }}>#{i + 1}</span>
+              <SeverityBadge severity={risk.severity} />
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontWeight: 600, fontSize: "0.85rem" }}>{risk.rule_name}</div>
+                <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", display: "flex", gap: "0.4rem", alignItems: "center" }}>
+                  <span className={`vendor-chip ${vm.cls}`} style={{ padding: "0.05rem 0.35rem", fontSize: "0.65rem" }}>{vm.icon}</span>
+                  {risk.device_name}
+                </div>
+              </div>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexShrink: 0 }}>
+              <span className="badge badge-unknown" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+                risk {risk.risk_score}/12
+              </span>
+              <span style={{ color: "var(--text-muted)", fontSize: "0.8rem" }}>→</span>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
